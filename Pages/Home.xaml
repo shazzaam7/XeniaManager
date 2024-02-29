@@ -9,7 +9,7 @@
       Title="Home">
     <Border CornerRadius="20,0,20,0" Background="White">
         <Grid>
-            <ProgressBar x:Name="Progress" Margin="216,316,216,316"></ProgressBar>
+
         </Grid>
     </Border>
 </Page>

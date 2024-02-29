@@ -171,9 +171,9 @@
                                     </Button.Content>
                                 </Button>
 
-                                <!-- Settings button -->
+                                <!-- Options button -->
                                 <Button
-                                    x:Name="Settings"
+                                    x:Name="Options"
                                     Style="{StaticResource Navigation_Buttons}">
                                     <Button.Content>
                                         <Grid>
@@ -189,7 +189,7 @@
                                             </Viewbox>
                                             <Viewbox Grid.Row="1" Margin="0,0,0,0">
                                                 <TextBlock
-                                                    Text="Settings"
+                                                    Text="Options"
                                                     Foreground="#333333"
                                                     FontWeight="SemiBold"
                                                     FontFamily="pack://application:,,,/Xenia Manager;component/Assets/Font/Segoe Fluent Icons.ttf#Segoe Fluent"
