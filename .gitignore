@@ -361,3 +361,12 @@ MigrationBackup/
 
 # Fody - auto-generated XML schema
 FodyWeavers.xsd
+/Assets/Test.ico
+/Assets/Test.jpg
+/Assets/Test2.ico
+/Assets/Test2.jpg
+/Assets/Test3.jpg
+/Assets/Test5.jpg
+/Wikipedia Scraper/xbox_360_titles (A-L).json
+/Wikipedia Scraper/xbox_360_titles (M-Z).json
+/Wikipedia Scraper/xbox_360_titles (A-L).json
