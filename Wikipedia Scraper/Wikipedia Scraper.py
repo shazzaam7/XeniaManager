@@ -6,21 +6,24 @@ import json
 #url = "https://en.wikipedia.org/wiki/List_of_Xbox_360_games_(A%E2%80%93L)"
 url = "https://en.wikipedia.org/wiki/List_of_Xbox_360_games_(M%E2%80%93Z)"
 # Function to extract image URL from the title's Wikipedia page
+
 def extract_image_url(title_link):
     response = requests.get("https://en.wikipedia.org" + title_link)
     if response.status_code == 200:
         soup = BeautifulSoup(response.content, 'html.parser')
-        # Find the main image of the article
-        image = soup.find('img', {'class': 'mw-file-element'})
-        if image:
-            image_url = image.get('src')
-            # Prepend "https://" to the image URL if it doesn't start with it already
-            if not image_url.startswith("https://"):
-                image_url = "https:" + image_url
-            print(image_url)
-            return image_url
+        # Find the infobox image element
+        infobox_image = soup.find('td', {'class': 'infobox-image'})
+        if infobox_image:
+            # Find the image inside the infobox image element
+            image = infobox_image.find('img')
+            if image:
+                image_url = image.get('src')
+                # Prepend "https://" to the image URL if it doesn't start with it already
+                if not image_url.startswith("https://"):
+                    image_url = "https:" + image_url
+                print(image_url)
+                return image_url
     return None
-
 
 
 # Send a GET request to the URL
