@@ -9,6 +9,8 @@ using Serilog;
 using Xenia_Manager.Classes;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
+using System.Windows.Controls;
+using System.Diagnostics;
 
 namespace Xenia_Manager.Windows
 {
@@ -32,16 +34,10 @@ namespace Xenia_Manager.Windows
         /// </summary>
         private string releaseDate = "";
 
-        /// <summary>
-        /// Instance of Download Manager Class
-        /// </summary>
-        private DownloadManager Downloader = new DownloadManager();
-
         public WelcomeDialog()
         {
             InitializeComponent();
         }
-
 
         /// <summary>
         /// Function that grabs the download link of the selected build
@@ -54,28 +50,31 @@ namespace Xenia_Manager.Windows
             {
                 using (HttpClient client = new HttpClient())
                 {
-                    // Set GitHub API headers
                     client.DefaultRequestHeaders.Add("User-Agent", "C# HttpClient");
                     client.DefaultRequestHeaders.Add("Accept", "application/vnd.github.v3+json");
 
                     HttpResponseMessage response = await client.GetAsync(url);
-
+                    
                     if (response.IsSuccessStatusCode)
                     {
+                        Log.Information("Got the response from the API. Parsing the JSON file.");
                         string json = await response.Content.ReadAsStringAsync();
                         JArray releases = JArray.Parse(json);
 
                         if (releases.Count > 0)
                         {
+                            Log.Information("Found a release of Xenia.");
                             JObject latestRelease = (JObject)releases[0];
                             JArray assets = (JArray)latestRelease["assets"];
                             id = (int)latestRelease["id"];
+                            Log.Information("ID of the build: " + id.ToString());
                             releaseDate = (string)latestRelease["published_at"];
+                            Log.Information("Release date: " + releaseDate);
                             if (assets.Count > 0)
                             {
                                 JObject firstAsset = (JObject)assets[0];
                                 downloadUrl = firstAsset["browser_download_url"].ToString();
-                                Log.Information("Download link: " + downloadUrl);
+                                Log.Information("Download link of the build: " + downloadUrl);
                             }
                             else
                             {
@@ -96,19 +95,106 @@ namespace Xenia_Manager.Windows
             catch (Exception ex)
             {
                 Log.Error(ex.Message, "");
+                MessageBox.Show(ex.Message + "\nFull Error:\n" + ex);
                 return;
             }
         }
-        
+
         /// <summary>
-        /// Updates the ProgressBar when downloading Xenia
+        /// Generates Xenia's configuration file
         /// </summary>
-        /// <param name="sender"></param>
-        /// <param name="progress"></param>
-        private void Downloader_ProgressChanged(object sender, int progress)
+        /// <param name="executablePath">Path to the Xenia executable</param>
+        /// <param name="configPath">Path to the Xenia configuration file</param>
+        /// <returns></returns>
+        private async Task GenerateConfigFile(string executablePath, string configPath)
         {
-            // Update progress bar
-            Progress.Value = progress;
+            try
+            {
+                Log.Information("Generating xenia-canary.config.toml by launching the emulator.");
+                Process xenia = new Process();
+                xenia.StartInfo.FileName = executablePath;
+                xenia.Start();
+                Log.Information("Emulator Launched");
+                Log.Information("Waiting for configuration file to be generated.");
+                while (!File.Exists(configPath))
+                {
+                    await Task.Delay(100);
+                }
+                Log.Information("Configuration file found. Closing the emulator.");
+                xenia.CloseMainWindow();
+                xenia.Close();
+                xenia.Dispose();
+                Log.Information("Emulator closed.");
+            }
+            catch (Exception ex)
+            {
+                Log.Error(ex.Message, "");
+                MessageBox.Show(ex.Message + "\nFull Error:\n" + ex);
+                return;
+            }
+        }
+
+        /// <summary>
+        /// Installs the Xenia Stable build
+        /// </summary>
+        private async void InstallXeniaStable_Click(object sender, RoutedEventArgs e)
+        {
+            try
+            {
+                MessageBox.Show("To be implemented.");
+                await Task.Delay(1);
+            }
+            catch (Exception ex)
+            {
+                Log.Error(ex.Message, "");
+                MessageBox.Show(ex.Message + "\nFull Error:\n" + ex);
+                return;
+            }
+        }
+
+        /// <summary>
+        /// Installs the Xenia Canary build
+        /// </summary>
+        private async void InstallXeniaCanary_Click(object sender, RoutedEventArgs e)
+        {
+            try
+            {
+                Log.Information("Grabbing the link to the latest Xenia Canary build.");
+                await GrabbingDownloadLink("https://api.github.com/repos/xenia-canary/xenia-canary/releases");
+
+                DownloadManager downloadManager = new DownloadManager(Progress, downloadUrl, AppDomain.CurrentDomain.BaseDirectory + @"\xenia.zip");
+                Log.Information("Downloading the latest Xenia Canary build.");
+                await downloadManager.DownloadAndExtractAsync();
+                Log.Information("Downloading and extraction of the latest Xenia Canary build done.");
+                Log.Information("Creating a JSON configuration file for the Xenia Manager.");
+
+                // Saving Configuration File as a JSON
+                App.appConfig = new AppConfiguration
+                {
+                    VersionID = id,
+                    Branch = "Canary",
+                    ReleaseDate = DateTime.Parse(releaseDate),
+                    EmulatorLocation = AppDomain.CurrentDomain.BaseDirectory + @"Xenia\",
+                    ConfigurationFilePath = AppDomain.CurrentDomain.BaseDirectory + @"Xenia\xenia-canary.config.toml",
+                    ExecutableFilePath = AppDomain.CurrentDomain.BaseDirectory + @"Xenia\xenia_canary.exe"
+                };
+                string json = JsonConvert.SerializeObject(App.appConfig);
+
+                // Write the JSON to a file
+                File.WriteAllText(App.InstallationDirectory + @"config.json", json);
+                Log.Information("Done. Generating Xenia configuration by running it.");
+                await GenerateConfigFile(App.appConfig.EmulatorLocation + @"xenia_canary.exe", App.appConfig.EmulatorLocation + @"\xenia-canary.config.toml");
+                Log.Information("Done.");
+                MessageBox.Show("Xenia Canary installed");
+                this.Close();
+                await Task.Delay(1);
+            }
+            catch (Exception ex)
+            {
+                Log.Error(ex.Message, "");
+                MessageBox.Show(ex.Message + "\nFull Error:\n" + ex);
+                return;
+            }
         }
 
         private void Exit_Click(object sender, RoutedEventArgs e)
@@ -124,35 +210,10 @@ namespace Xenia_Manager.Windows
             }
         }
 
-        private async void InstallXeniaCanary_Click(object sender, RoutedEventArgs e)
+        private async void Window_Loaded(object sender, RoutedEventArgs e)
         {
-            try
-            {
-                // AppDomain.CurrentDomain.BaseDirectory - To grab where the app is really stored
-                // Grabbing the link to the latest Xenia Canary Build
-                await GrabbingDownloadLink("https://api.github.com/repos/xenia-canary/xenia-canary/releases");
-
-                // Downloading the latest Xenia Canary build and updating ProgressBar
-                Downloader.ProgressChanged += Downloader_ProgressChanged;
-                await Downloader.DownloadBuild(downloadUrl, AppDomain.CurrentDomain.BaseDirectory);
-                
-                // Saving Configuration File as a JSON
-                AppConfiguration appConfig = new AppConfiguration{
-                    VersionID = id,
-                    Branch = "Canary",
-                    ReleaseDate = DateTime.Parse(releaseDate),
-                    EmulatorLocation = AppDomain.CurrentDomain.BaseDirectory
-                };
-                string json = JsonConvert.SerializeObject(appConfig);
-
-                // Write the JSON to a file
-                File.WriteAllText("config.json", json);
-            }
-            catch (Exception ex)
-            {
-                Log.Error(ex.Message, "");
-                return;
-            }
+            await Task.Delay(1000);
+            this.Topmost = false;
         }
     }
 }

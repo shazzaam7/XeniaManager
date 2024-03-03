@@ -1,6 +1,9 @@
 ﻿using System;
 using System.IO;
 using System.Net.Http;
+using System.Windows.Controls;
+using System.IO.Compression;
+using System.Threading.Tasks;
 
 // Imported
 using Serilog;
@@ -10,49 +13,68 @@ namespace Xenia_Manager.Classes
 {
     public class DownloadManager
     {
-        public event EventHandler<int> ProgressChanged;
+        /// <summary>
+        /// ProgressBar element
+        /// </summary>
+        private readonly ProgressBar _progressBar;
+        /// <summary>
+        /// URL of the download
+        /// </summary>
+        private readonly string _downloadUrl;
+        /// <summary>
+        /// Where the download is stored
+        /// </summary>
+        private readonly string _downloadPath;
+
+        public DownloadManager(ProgressBar progressBar, string downloadUrl, string downloadPath)
+        {
+            _progressBar = progressBar;
+            _downloadUrl = downloadUrl;
+            _downloadPath = downloadPath;
+        }
 
         /// <summary>
-        /// Used for downloading Xenia builds
+        /// Used for downloading Xenia builds and extracting them
         /// </summary>
         /// <param name="url">URL where the build is stored</param>
         /// <param name="savePath">Where we want to save the build</param>
         /// <returns></returns>
-        public async Task DownloadBuild(string url, string savePath)
+        public async Task DownloadAndExtractAsync()
         {
             using (var httpClient = new HttpClient())
             {
-                using (var response = await httpClient.GetAsync(url, HttpCompletionOption.ResponseHeadersRead))
+                using (var response = await httpClient.GetAsync(_downloadUrl, HttpCompletionOption.ResponseHeadersRead))
                 {
                     response.EnsureSuccessStatusCode();
+                    var totalBytes = response.Content.Headers.ContentLength ?? -1;
+                    var downloadedBytes = 0L;
 
-                    using (var stream = await response.Content.ReadAsStreamAsync())
+                    using (var fileStream = new FileStream(_downloadPath, FileMode.Create, FileAccess.Write, FileShare.None))
                     {
-                        var totalBytes = response.Content.Headers.ContentLength ?? -1L;
-                        var bytesRead = 0L;
-                        var buffer = new byte[4096];
-                        var isMoreToRead = true;
-
-                        using (var fileStream = new FileStream(savePath, FileMode.Create, FileAccess.Write, FileShare.None, 4096, true))
+                        var buffer = new byte[8192];
+                        var bytesRead = 0;
+                        using (var stream = await response.Content.ReadAsStreamAsync())
                         {
-                            do
+                            while ((bytesRead = await stream.ReadAsync(buffer, 0, buffer.Length)) > 0)
                             {
-                                var read = await stream.ReadAsync(buffer, 0, buffer.Length);
-                                if (read == 0)
+                                await fileStream.WriteAsync(buffer, 0, bytesRead);
+                                downloadedBytes += bytesRead;
+                                if (totalBytes > 0)
                                 {
-                                    isMoreToRead = false;
+                                    var progress = (int)Math.Round((double)downloadedBytes / totalBytes * 100);
+                                    UpdateProgressBar(progress);
                                 }
-                                else
-                                {
-                                    await fileStream.WriteAsync(buffer, 0, read);
-                                    bytesRead += read;
-                                    var progress = (int)((bytesRead * 1.0 / totalBytes) * 100);
-                                    OnProgressChanged(progress);
-                                }
-                            } while (isMoreToRead);
+                            }
                         }
                     }
                 }
+                Log.Information("Download completed. Extracting.");
+
+                ZipFile.ExtractToDirectory(_downloadPath, Path.GetDirectoryName(_downloadPath) + @"\Xenia\");
+                Log.Information("Extraction done. Deleting the zip file.");
+
+                File.Delete(_downloadPath);
+                Log.Information("Deleting the zip file done.");
             }
         }
 
@@ -60,9 +82,16 @@ namespace Xenia_Manager.Classes
         /// This is used to update ProgressBar
         /// </summary>
         /// <param name="progress"></param>
-        protected virtual void OnProgressChanged(int progress)
+        private void UpdateProgressBar(int progress)
         {
-            ProgressChanged?.Invoke(this, progress);
+            if (_progressBar.Dispatcher.CheckAccess())
+            {
+                _progressBar.Value = progress;
+            }
+            else
+            {
+                _progressBar.Dispatcher.Invoke(() => _progressBar.Value = progress);
+            }
         }
     }
 }

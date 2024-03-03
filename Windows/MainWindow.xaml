@@ -9,7 +9,7 @@
         Width="960" Height="720" WindowStyle="None"
         ResizeMode="NoResize" WindowStartupLocation="CenterScreen"
         Background="Transparent" AllowsTransparency="True"
-        MouseLeftButtonDown="Window_MouseLeftButtonDown">
+        MouseLeftButtonDown="Window_MouseLeftButtonDown" Loaded="Window_Loaded">
     <Window.Resources>
         <Style x:Key="Navigation_Buttons" TargetType="Button">
             <Setter Property="FontSize" Value="32"/>
@@ -251,7 +251,7 @@
                             CornerRadius="20,0,20,0">
                         <Frame x:Name="PageViewer"
                                NavigationUIVisibility="Hidden"
-                               Source="/Pages/Home.xaml">
+                               Source="/Pages/Library.xaml">
 
                         </Frame>
                     </Border>

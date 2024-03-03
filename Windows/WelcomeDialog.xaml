@@ -7,9 +7,19 @@
         mc:Ignorable="d"
         Title="WelcomeDialog" 
         Height="440" Width="418" MinWidth="500" MinHeight="500"
-        WindowStyle="None" ResizeMode="NoResize" WindowStartupLocation="CenterScreen" Topmost="True"
+        WindowStyle="None" ResizeMode="NoResize"
+        WindowStartupLocation="CenterScreen"
         Background="Transparent" AllowsTransparency="True"
-        MouseLeftButtonDown="Window_MouseLeftButtonDown">
+        MouseLeftButtonDown="Window_MouseLeftButtonDown" Loaded="Window_Loaded">
+    <Window.Triggers>
+        <EventTrigger RoutedEvent="FrameworkElement.Loaded">
+            <BeginStoryboard>
+                <Storyboard>
+                    <DoubleAnimation Storyboard.TargetProperty="Opacity" From="0" To="1" Duration="0:0:0.5"/>
+                </Storyboard>
+            </BeginStoryboard>
+        </EventTrigger>
+    </Window.Triggers>
     <Border Background="#FFFFFF"
             BorderBrush="#CCCCCC"
             BorderThickness="2"
@@ -65,7 +75,8 @@
                         FontFamily="pack://application:,,,/Xenia Manager;component/Assets/Font/Segoe Fluent Icons.ttf#Segoe Fluent"
                         FontSize="20"
                         Background="{x:Null}"
-                        Margin="40,25,40,10">
+                        Margin="40,25,40,10"
+                        Click="InstallXeniaStable_Click">
                     <Button.Template>
                         <ControlTemplate TargetType="Button">
                             <Border CornerRadius="5"

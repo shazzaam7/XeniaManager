@@ -3,7 +3,9 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 17
 VisualStudioVersion = 17.8.34330.188
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Xenia Manager", "Xenia Manager.csproj", "{9C2E6AEF-F613-43F8-8064-7BD08841B8DA}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Xenia Manager", "Xenia Manager.csproj", "{9C2E6AEF-F613-43F8-8064-7BD08841B8DA}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ConsoleApp2", "..\ConsoleApp2\ConsoleApp2.csproj", "{FBB680B8-155D-4E5D-9FEA-AB238FCD10A9}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -15,6 +17,10 @@ Global
 		{9C2E6AEF-F613-43F8-8064-7BD08841B8DA}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{9C2E6AEF-F613-43F8-8064-7BD08841B8DA}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{9C2E6AEF-F613-43F8-8064-7BD08841B8DA}.Release|Any CPU.Build.0 = Release|Any CPU
+		{FBB680B8-155D-4E5D-9FEA-AB238FCD10A9}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{FBB680B8-155D-4E5D-9FEA-AB238FCD10A9}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{FBB680B8-155D-4E5D-9FEA-AB238FCD10A9}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{FBB680B8-155D-4E5D-9FEA-AB238FCD10A9}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

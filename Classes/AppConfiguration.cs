@@ -29,6 +29,19 @@ namespace Xenia_Manager.Classes
         /// <summary>
         /// <para>Where the emulator is installed</para>
         /// </summary>
+        [JsonProperty("EmulatorLocation")]
         public string? EmulatorLocation { get; set; }
+
+        /// <summary>
+        /// <para>Where the emulator configuration file is located</para>
+        /// </summary>
+        [JsonProperty("ConfigurationFilePath")]
+        public string? ConfigurationFilePath { get; set; }
+
+        /// <summary>
+        /// <para>Where the emulator executable is located</para>
+        /// </summary>
+        [JsonProperty("ExecutableFilePath")]
+        public string? ExecutableFilePath { get; set; }
     }
 }

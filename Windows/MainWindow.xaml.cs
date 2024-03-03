@@ -1,10 +1,13 @@
 ﻿using System;
-using System.Diagnostics;
 using System.Windows;
 using System.Windows.Input;
+using System.IO;
 
 // Imported
 using Serilog;
+using Xenia_Manager.Windows;
+using System.Diagnostics;
+using System.Text.RegularExpressions;
 
 namespace Xenia_Manager
 {
@@ -28,6 +31,23 @@ namespace Xenia_Manager
             if (e.ButtonState == MouseButtonState.Pressed)
             {
                 DragMove();
+            }
+        }
+
+        private void Window_Loaded(object sender, RoutedEventArgs e)
+        {
+            try
+            {
+                if (!File.Exists(App.InstallationDirectory + @"config.json"))
+                {
+                    WelcomeDialog welcomeDialog = new WelcomeDialog();
+                    welcomeDialog.Topmost = true;
+                    welcomeDialog.ShowDialog();
+                }
+            }
+            catch (Exception ex)
+            {
+                Log.Error(ex.Message, "");
             }
         }
     }
