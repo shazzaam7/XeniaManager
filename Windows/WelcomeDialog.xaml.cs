@@ -94,8 +94,8 @@ namespace Xenia_Manager.Windows
             }
             catch (Exception ex)
             {
-                Log.Error(ex.Message, "");
-                MessageBox.Show(ex.Message + "\nFull Error:\n" + ex);
+                Log.Error(ex.Message + "\nFull Error:\n" + ex);
+                MessageBox.Show(ex.Message);
                 return;
             }
         }
@@ -128,8 +128,8 @@ namespace Xenia_Manager.Windows
             }
             catch (Exception ex)
             {
-                Log.Error(ex.Message, "");
-                MessageBox.Show(ex.Message + "\nFull Error:\n" + ex);
+                Log.Error(ex.Message + "\nFull Error:\n" + ex);
+                MessageBox.Show(ex.Message);
                 return;
             }
         }
@@ -146,8 +146,8 @@ namespace Xenia_Manager.Windows
             }
             catch (Exception ex)
             {
-                Log.Error(ex.Message, "");
-                MessageBox.Show(ex.Message + "\nFull Error:\n" + ex);
+                Log.Error(ex.Message + "\nFull Error:\n" + ex);
+                MessageBox.Show(ex.Message);
                 return;
             }
         }
@@ -178,6 +178,21 @@ namespace Xenia_Manager.Windows
                     ConfigurationFilePath = AppDomain.CurrentDomain.BaseDirectory + @"Xenia\xenia-canary.config.toml",
                     ExecutableFilePath = AppDomain.CurrentDomain.BaseDirectory + @"Xenia\xenia_canary.exe"
                 };
+
+                if (!Directory.Exists(AppDomain.CurrentDomain.BaseDirectory + @"Icons\"))
+                {
+                    Directory.CreateDirectory(AppDomain.CurrentDomain.BaseDirectory + @"Icons\");
+                }
+
+                if (!Directory.Exists(App.appConfig.EmulatorLocation + @"patches\"))
+                {
+                    Directory.CreateDirectory(App.appConfig.EmulatorLocation + @"patches\");
+                }
+
+                if (!File.Exists(App.appConfig.EmulatorLocation + @"portable.txt"))
+                {
+                    File.Create(App.appConfig.EmulatorLocation + @"portable.txt");
+                }
                 string json = JsonConvert.SerializeObject(App.appConfig);
 
                 // Write the JSON to a file
@@ -191,8 +206,8 @@ namespace Xenia_Manager.Windows
             }
             catch (Exception ex)
             {
-                Log.Error(ex.Message, "");
-                MessageBox.Show(ex.Message + "\nFull Error:\n" + ex);
+                Log.Error(ex.Message + "\nFull Error:\n" + ex);
+                MessageBox.Show(ex.Message);
                 return;
             }
         }

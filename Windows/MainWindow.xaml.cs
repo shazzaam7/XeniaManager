@@ -47,7 +47,8 @@ namespace Xenia_Manager
             }
             catch (Exception ex)
             {
-                Log.Error(ex.Message, "");
+                Log.Error(ex.Message + "\nFull Error:\n" + ex);
+                MessageBox.Show(ex.Message);
             }
         }
     }

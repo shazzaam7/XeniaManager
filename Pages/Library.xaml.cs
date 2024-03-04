@@ -9,6 +9,12 @@ using Microsoft.Win32;
 using Xenia_Manager.Classes;
 using System.Diagnostics;
 using System.Text.RegularExpressions;
+using System.Windows.Input;
+using System.Windows.Media.Imaging;
+using System.Windows.Media;
+using Xenia_Manager.Windows;
+using Newtonsoft.Json;
+using System.IO;
 
 
 namespace Xenia_Manager.Pages
@@ -19,61 +25,182 @@ namespace Xenia_Manager.Pages
     public partial class Library : Page
     {
 
-        public ObservableCollection<Game> Games { get; set; }
+        public ObservableCollection<Game> Games = new ObservableCollection<Game> ();
 
         public Library()
         {
             InitializeComponent();
             DataContext = this;
-            LoadGames();
+            LoadGamesStartup();
         }
 
-        private void LoadGames()
+        private void LoadGamesStartup()
         {
             try
             {
-                wrapPanel.Children.Clear();
-                /*
-                foreach (var game in Games)
+                if (File.Exists(App.InstallationDirectory + @"installedGames.json"))
                 {
-                    var button = new Button();
-                    var image = new Image
-                    {
-                        Source = new BitmapImage(new Uri(game.CoverImage)),
-                        Stretch = Stretch.UniformToFill // Resize image proportionally to fit the specified dimensions
-                    };
-
-                    var border = new Border
-                    {
-                        CornerRadius = new CornerRadius(20), // Adjust the corner radius as needed
-                        Child = image
-                    };
-
-                    button.Content = border;
-                    button.Click += (sender, e) => GameCover_Click(game);
-                    button.Cursor = Cursors.Hand;
-                    button.Style = (Style)FindResource("GameCoverButtons");
-                    wrapPanel.Children.Add(button);
-                    button.Loaded += (sender, e) =>
-                    {
-                        button.Width = 132;
-                        button.Height = 198;
-                        button.Margin = new Thickness(5);
-                    };
+                    wrapPanel.Children.Clear();
+                    string JSON = File.ReadAllText(App.InstallationDirectory + @"installedGames.json");
+                    Games = JsonConvert.DeserializeObject<ObservableCollection<Game>>((JSON));
+                    LoadGamesIntoUI();
                 }
-                */
             }
             catch (Exception ex)
             {
                 Log.Error(ex.Message, "");
                 MessageBox.Show(ex.Message + "\nFull Error:\n" + ex);
+            }
+        }
+
+        private async Task LoadGames()
+        {
+            try
+            {
+                wrapPanel.Children.Clear();
+                await LoadGamesIntoUI();
+            }
+            catch (Exception ex)
+            {
+                Log.Error(ex.Message + "\nFull Error:\n" + ex);
+                MessageBox.Show(ex.Message);
                 return;
             }
         }
 
-        private void GameCover_Click(Game game)
+        private async Task LoadGamesIntoUI()
         {
-            Log.Information(game.Title);
+            try
+            {
+                if (Games != null && Games.Count > 0)
+                {
+                    var orderedGames = Games.OrderBy(game => game.Title);
+                    foreach (var game in orderedGames)
+                    {
+                        var button = new Button();
+                        var image = new Image
+                        {
+                            Source = new BitmapImage(new Uri(game.CoverImage)),
+                            Stretch = Stretch.UniformToFill
+                        };
+
+                        var border = new Border
+                        {
+                            CornerRadius = new CornerRadius(20),
+                            Child = image
+                        };
+
+                        button.Content = border;
+                        button.Click += (sender, e) => GameCover_Click(game);
+                        button.Cursor = Cursors.Hand;
+                        button.Style = (Style)FindResource("GameCoverButtons");
+                        button.ToolTip = game.Title;
+                        wrapPanel.Children.Add(button);
+                        button.Loaded += (sender, e) =>
+                        {
+                            button.Width = 132;
+                            button.Height = 198;
+                            button.Margin = new Thickness(5);
+
+                            // Create the context menu
+                            ContextMenu contextMenu = new ContextMenu();
+
+                            // Create menu items
+                            MenuItem EditGame = new MenuItem();
+                            EditGame.Header = "Edit game";
+                            EditGame.Click += (sender, e) => EditGame_Click(game);
+
+                            MenuItem RemoveGame = new MenuItem();
+                            RemoveGame.Header = "Remove game";
+                            RemoveGame.Click += (sender, e) => RemoveGame_Click(game);
+
+                            contextMenu.Items.Add(EditGame);
+                            contextMenu.Items.Add(RemoveGame);
+
+                            // Assign context menu to button
+                            button.ContextMenu = contextMenu;
+                        };
+                    }
+                }
+                await Task.Delay(1);
+            }
+            catch (Exception ex)
+            {
+                Log.Error(ex.Message + "\nFull Error:\n" + ex);
+                MessageBox.Show(ex.Message);
+                return;
+            }
+        }
+
+        private async void EditGame_Click(Game game)
+        {
+            try
+            {
+                await Task.Delay(1);
+            }
+            catch (Exception ex)
+            {
+                Log.Error(ex.Message + "\nFull Error:\n" + ex);
+                MessageBox.Show(ex.Message);
+                return;
+            }
+        }
+
+        private async void RemoveGame_Click(Game game)
+        {
+            try
+            {
+                MessageBoxResult result = MessageBox.Show($"Do you want to remove {game.Title}?", "Confirmation", MessageBoxButton.YesNo, MessageBoxImage.Question);
+                if (result == MessageBoxResult.Yes)
+                {
+                    Games.Remove(game);
+                    await LoadGames();
+                    await SaveGames();
+                }
+            }
+            catch (Exception ex)
+            {
+                Log.Error(ex.Message + "\nFull Error:\n" + ex);
+                MessageBox.Show(ex.Message);
+                return;
+            }
+        }
+
+
+        private async void GameCover_Click(Game game)
+        {
+            try
+            {
+                Process xenia = new Process();
+                xenia.StartInfo.FileName = App.appConfig.ExecutableFilePath;
+                xenia.StartInfo.Arguments = $@"""{game.GameLocation}"" --fullscreen";
+                xenia.Start();
+                Log.Information("Emulator started.");
+                xenia.WaitForExitAsync();
+                Log.Information("Emulator closed.");
+            }
+            catch (Exception ex)
+            {
+                Log.Error(ex.Message + "\nFull Error:\n" + ex);
+                MessageBox.Show(ex.Message);
+                return;
+            }
+        }
+
+        private async Task SaveGames()
+        {
+            try
+            {
+                string JSON = JsonConvert.SerializeObject(Games, Formatting.Indented);
+                File.WriteAllText(App.InstallationDirectory + @"installedGames.json", JSON);
+                await Task.Delay(1);
+            }
+            catch (Exception ex)
+            {
+                Log.Error(ex.Message + "\nFull Error:\n" + ex);
+                MessageBox.Show(ex.Message);
+                return;
+            }
         }
 
         private async void AddGame_Click(object sender, RoutedEventArgs e)
@@ -81,7 +208,7 @@ namespace Xenia_Manager.Pages
             try 
             {
                 OpenFileDialog openFileDialog = new OpenFileDialog();
-                openFileDialog.Title = "Select a Game";
+                openFileDialog.Title = "Select a game";
                 openFileDialog.Filter = "Supported Files|*.iso;*.xex;*.zar|ISO Files (*.iso)|*.iso|XEX Files (*.xex)|*.xex|ZAR Files (*.zar)|*.zar";
                 bool? result = openFileDialog.ShowDialog();
 
@@ -136,6 +263,9 @@ namespace Xenia_Manager.Pages
                             xenia.CloseMainWindow();
                             xenia.Close();
                             xenia.Dispose();
+
+                            SelectGame sd = new SelectGame(this, gameTitle, selectedFilePath);
+                            sd.ShowDialog();
                         }
                         else
                         {
@@ -143,6 +273,8 @@ namespace Xenia_Manager.Pages
                             xenia.CloseMainWindow();
                             xenia.Close();
                             xenia.Dispose();
+                            SelectGame sd = new SelectGame(this, "", selectedFilePath);
+                            sd.ShowDialog();
                         }
                     }
                     else
@@ -153,13 +285,18 @@ namespace Xenia_Manager.Pages
                         xenia.CloseMainWindow();
                         xenia.Close();
                         xenia.Dispose();
+
+                        SelectGame sd = new SelectGame(this, gameTitle, selectedFilePath);
+                        sd.ShowDialog();
                     }
                 }
+                await LoadGames();
+                await SaveGames();
             } 
             catch (Exception ex)
             {
-                Log.Error(ex.Message, "");
-                MessageBox.Show(ex.Message + "\nFull Error:\n" + ex);
+                Log.Error(ex.Message + "\nFull Error:\n" + ex);
+                MessageBox.Show(ex.Message);
                 return;
             }
         }
