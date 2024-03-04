@@ -53,7 +53,7 @@ namespace Xenia_Manager.Windows
         private string gameTitle = "";
         private string GameFilePath = "";
         private Xenia_Manager.Pages.Library _library;
-
+        public Game newGame = new Game();
 
         private async void InitializeAsync()
         {
@@ -114,46 +114,49 @@ namespace Xenia_Manager.Windows
         {
             try
             {
-                using (var webClient = new WebClient())
+                if (!File.Exists(outputPath))
                 {
-                    webClient.Headers.Add("User-Agent", "CoolBot/0.0 (https://example.org/coolbot/; coolbot@example.org) generic-library/0.0"); // Add custom User-Agent header
-
-                    byte[] imageData = webClient.DownloadData(imageUrl);
-
-                    using (MemoryStream memoryStream = new MemoryStream(imageData))
+                    using (var webClient = new WebClient())
                     {
-                        using (var magickImage = new MagickImage(memoryStream))
+                        webClient.Headers.Add("User-Agent", "CoolBot/0.0 (https://example.org/coolbot/; coolbot@example.org) generic-library/0.0"); // Add custom User-Agent header
+
+                        byte[] imageData = webClient.DownloadData(imageUrl);
+
+                        using (MemoryStream memoryStream = new MemoryStream(imageData))
                         {
-                            double aspectRatio = (double)width / height;
-                            magickImage.Resize(width, height);
-
-                            double imageRatio = (double)magickImage.Width / magickImage.Height;
-                            int newWidth, newHeight, offsetX, offsetY;
-
-                            if (imageRatio > aspectRatio)
+                            using (var magickImage = new MagickImage(memoryStream))
                             {
-                                newWidth = width;
-                                newHeight = (int)Math.Round(width / imageRatio);
-                                offsetX = 0;
-                                offsetY = (height - newHeight) / 2;
-                            }
-                            else
-                            {
-                                newWidth = (int)Math.Round(height * imageRatio);
-                                newHeight = height;
-                                offsetX = (width - newWidth) / 2;
-                                offsetY = 0;
-                            }
+                                double aspectRatio = (double)width / height;
+                                magickImage.Resize(width, height);
 
-                            // Create a canvas with black background
-                            using (var canvas = new MagickImage(MagickColors.Black, width, height))
-                            {
-                                // Composite the resized image onto the canvas
-                                canvas.Composite(magickImage, offsetX, offsetY, CompositeOperator.SrcOver);
+                                double imageRatio = (double)magickImage.Width / magickImage.Height;
+                                int newWidth, newHeight, offsetX, offsetY;
 
-                                // Convert to ICO format
-                                canvas.Format = MagickFormat.Ico;
-                                canvas.Write(outputPath);
+                                if (imageRatio > aspectRatio)
+                                {
+                                    newWidth = width;
+                                    newHeight = (int)Math.Round(width / imageRatio);
+                                    offsetX = 0;
+                                    offsetY = (height - newHeight) / 2;
+                                }
+                                else
+                                {
+                                    newWidth = (int)Math.Round(height * imageRatio);
+                                    newHeight = height;
+                                    offsetX = (width - newWidth) / 2;
+                                    offsetY = 0;
+                                }
+
+                                // Create a canvas with black background
+                                using (var canvas = new MagickImage(MagickColors.Black, width, height))
+                                {
+                                    // Composite the resized image onto the canvas
+                                    canvas.Composite(magickImage, offsetX, offsetY, CompositeOperator.SrcOver);
+
+                                    // Convert to ICO format
+                                    canvas.Format = MagickFormat.Ico;
+                                    canvas.Write(outputPath);
+                                }
                             }
                         }
                     }
@@ -183,10 +186,11 @@ namespace Xenia_Manager.Windows
                             Log.Information($"Selected Game: {selectedGame.Title}");
                             Log.Information(selectedGame.ImageUrl);
                             await GetGameIcon(selectedGame.ImageUrl, @$"{App.InstallationDirectory}Icons\{selectedGame.Title.Replace(":", " -")}.ico");
-                            Game newGame = new Game();
                             newGame.Title = selectedGame.Title.Replace(":", " -");
                             newGame.CoverImage = App.InstallationDirectory + @"Icons\" + selectedGame.Title.Replace(":", " -") + ".ico";
                             newGame.GameLocation = GameFilePath;
+                            SelectGamePatch gamePatch = new SelectGamePatch(this);
+                            gamePatch.ShowDialog();
                             _library.Games.Add(newGame);
                             this.Close();
                         }
@@ -214,6 +218,11 @@ namespace Xenia_Manager.Windows
             Games.ItemsSource = null;
             Games.Items.Clear();
             Games.ItemsSource = filteredGameTitles;
+        }
+
+        private void Exit_Click(object sender, RoutedEventArgs e)
+        {
+            this.Close();
         }
     }
 }

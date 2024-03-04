@@ -18,5 +18,10 @@ namespace Xenia_Manager.Classes
         /// Where the game is located (ISO, etc..)
         /// </summary>
         public string? GameLocation { get; set; }
+
+        /// <summary>
+        /// Where the game patch is located (ISO, etc..)
+        /// </summary>
+        public string? PatchLocation { get; set; }
     }
 }

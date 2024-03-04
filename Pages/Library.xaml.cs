@@ -24,7 +24,9 @@ namespace Xenia_Manager.Pages
     /// </summary>
     public partial class Library : Page
     {
-
+        /// <summary>
+        /// Holds all of the imported games into the Manager
+        /// </summary>
         public ObservableCollection<Game> Games = new ObservableCollection<Game> ();
 
         public Library()
@@ -34,6 +36,9 @@ namespace Xenia_Manager.Pages
             LoadGamesStartup();
         }
 
+        /// <summary>
+        /// Loads all of the games when this page is loaded
+        /// </summary>
         private void LoadGamesStartup()
         {
             try
@@ -53,6 +58,9 @@ namespace Xenia_Manager.Pages
             }
         }
 
+        /// <summary>
+        /// Used to load games in general, mostly after importing another game or removing
+        /// </summary>
         private async Task LoadGames()
         {
             try
@@ -68,6 +76,9 @@ namespace Xenia_Manager.Pages
             }
         }
 
+        /// <summary>
+        /// Loads the games into the Wrappanel
+        /// </summary>
         private async Task LoadGamesIntoUI()
         {
             try
@@ -91,7 +102,7 @@ namespace Xenia_Manager.Pages
                         };
 
                         button.Content = border;
-                        button.Click += (sender, e) => GameCover_Click(game);
+                        button.Click += (sender, e) => StartGame_Click(game);
                         button.Cursor = Cursors.Hand;
                         button.Style = (Style)FindResource("GameCoverButtons");
                         button.ToolTip = game.Title;
@@ -114,6 +125,14 @@ namespace Xenia_Manager.Pages
                             RemoveGame.Header = "Remove game";
                             RemoveGame.Click += (sender, e) => RemoveGame_Click(game);
 
+                            if (game.PatchLocation != null)
+                            {
+                                MenuItem EditGamePatch = new MenuItem();
+                                EditGamePatch.Header = "Edit game patch";
+                                EditGamePatch.Click += (sender, e) => EditGamePatch_Click(game);
+                                contextMenu.Items.Add(EditGamePatch);
+                            }
+
                             contextMenu.Items.Add(EditGame);
                             contextMenu.Items.Add(RemoveGame);
 
@@ -132,10 +151,14 @@ namespace Xenia_Manager.Pages
             }
         }
 
-        private async void EditGame_Click(Game game)
+        /// <summary>
+        /// Used to edit the game details
+        /// </summary>
+        private async void EditGamePatch_Click(Game game)
         {
             try
             {
+                Log.Information("Editing game patch.");
                 await Task.Delay(1);
             }
             catch (Exception ex)
@@ -146,6 +169,28 @@ namespace Xenia_Manager.Pages
             }
         }
 
+        /// <summary>
+        /// Used to edit the game details
+        /// </summary>
+        private async void EditGame_Click(Game game)
+        {
+            try
+            {
+                Log.Information("Editing game details.");
+                await Task.Delay(1);
+            }
+            catch (Exception ex)
+            {
+                Log.Error(ex.Message + "\nFull Error:\n" + ex);
+                MessageBox.Show(ex.Message);
+                return;
+            }
+        }
+
+        /// <summary>
+        /// Used for removing the game from the manager
+        /// </summary>
+        /// <param name="game">Game that we want to remove</param>
         private async void RemoveGame_Click(Game game)
         {
             try
@@ -166,8 +211,11 @@ namespace Xenia_Manager.Pages
             }
         }
 
-
-        private async void GameCover_Click(Game game)
+        /// <summary>
+        /// Launches the game and waits for it to close
+        /// </summary>
+        /// <param name="game">Game we want to launch</param>
+        private async void StartGame_Click(Game game)
         {
             try
             {
@@ -176,7 +224,7 @@ namespace Xenia_Manager.Pages
                 xenia.StartInfo.Arguments = $@"""{game.GameLocation}"" --fullscreen";
                 xenia.Start();
                 Log.Information("Emulator started.");
-                xenia.WaitForExitAsync();
+                await xenia.WaitForExitAsync();
                 Log.Information("Emulator closed.");
             }
             catch (Exception ex)
@@ -187,6 +235,9 @@ namespace Xenia_Manager.Pages
             }
         }
 
+        /// <summary>
+        /// Saves the installed games into installedGames.json
+        /// </summary>
         private async Task SaveGames()
         {
             try
@@ -203,6 +254,98 @@ namespace Xenia_Manager.Pages
             }
         }
 
+        /// <summary>
+        /// Used to get game title from Xenia Window Title
+        /// </summary>
+        /// <param name="selectedFilePath">Where the selected game file is (.iso etc.)</param>
+        private async Task GetGameTitle(string selectedFilePath)
+        {
+            try
+            {
+                Log.Information("Launching game with Xenia to find the name of the game.");
+                Process xenia = new Process();
+                xenia.StartInfo.FileName = App.appConfig.ExecutableFilePath;
+                xenia.StartInfo.Arguments = $@"""{selectedFilePath}""";
+                xenia.Start();
+                xenia.WaitForInputIdle();
+
+                string test = "Xenia-canary (canary_experimental@e0f0dc7f3 on Dec 23 2023)";
+                string gameTitle = "";
+                string gameVersion = "";
+
+                Process process = Process.GetProcessById(xenia.Id);
+                while (process.MainWindowTitle.Length <= (test.Length))
+                {
+                    process = Process.GetProcessById(xenia.Id);
+                    await Task.Delay(1000);
+                }
+                Log.Information($"Xenia Window Title: {xenia.MainWindowTitle}");
+
+                Log.Information("Trying first method to find the game title from Xenia Window Title.");
+                Regex versionRegex = new Regex(@"\[([A-Z0-9]+)\s+v\d+\.\d+\]");
+                Regex gameNameRegex = new Regex(@"\]\s+(.+)\s+<");
+
+                Match versionMatch = versionRegex.Match(xenia.MainWindowTitle);
+                gameVersion = versionMatch.Success ? versionMatch.Groups[1].Value : "Not found";
+                Match gameNameMatch = gameNameRegex.Match(xenia.MainWindowTitle);
+                gameTitle = gameNameMatch.Success ? gameNameMatch.Groups[1].Value : "Not found";
+
+                if (gameTitle == "" || gameTitle == "Not found")
+                {
+                    Log.Information("First method failed.");
+                    Log.Information("Trying second method to find the game title from Xenia Window Title.");
+
+                    string pattern = @"\[(?<version>[^\]]+)\]\s(?<gameName>[^\<]+)";
+                    Match match = Regex.Match(xenia.MainWindowTitle, pattern);
+
+                    if (match.Success)
+                    {
+                        gameTitle = match.Groups["version"].Value;
+                        gameTitle = match.Groups["gameName"].Value.Trim();
+
+                        Log.Information("Game Title: " + gameTitle);
+                        Log.Information("Version: " + gameVersion);
+                        xenia.CloseMainWindow();
+                        xenia.Close();
+                        xenia.Dispose();
+
+                        SelectGame sd = new SelectGame(this, gameTitle, selectedFilePath);
+                        sd.ShowDialog();
+                    }
+                    else
+                    {
+                        Log.Information("No game title found.");
+                        xenia.CloseMainWindow();
+                        xenia.Close();
+                        xenia.Dispose();
+                        SelectGame sd = new SelectGame(this, "", selectedFilePath);
+                        sd.ShowDialog();
+                    }
+                }
+                else
+                {
+                    Log.Information("Game title found.");
+                    Log.Information("Game Title: " + gameTitle);
+                    Log.Information("Version: " + gameVersion);
+                    xenia.CloseMainWindow();
+                    xenia.Close();
+                    xenia.Dispose();
+
+                    SelectGame sd = new SelectGame(this, gameTitle, selectedFilePath);
+                    sd.ShowDialog();
+                }
+            }
+            catch (Exception ex)
+            {
+                Log.Error(ex.Message + "\nFull Error:\n" + ex);
+                MessageBox.Show(ex.Message);
+                return;
+            }
+        }
+
+        /// <summary>
+        /// Opens FileDialog where user selects the game
+        /// </summary>
         private async void AddGame_Click(object sender, RoutedEventArgs e)
         {
             try 
@@ -214,81 +357,8 @@ namespace Xenia_Manager.Pages
 
                 if (result == true)
                 {
-                    string selectedFilePath = openFileDialog.FileName;
-                    Log.Information(selectedFilePath);
-
-                    Log.Information("Launching game with Xenia to find the name of the game.");
-                    Process xenia = new Process();
-                    xenia.StartInfo.FileName = App.appConfig.ExecutableFilePath;
-                    xenia.StartInfo.Arguments = $@"""{openFileDialog.FileName}"" --fullscreen";
-                    xenia.Start();
-                    xenia.WaitForInputIdle();
-
-                    string test = "Xenia-canary (canary_experimental@e0f0dc7f3 on Dec 23 2023)";
-                    string gameTitle = "";
-                    string gameVersion = "";
-
-                    Process process = Process.GetProcessById(xenia.Id);
-                    while (process.MainWindowTitle.Length <= (test.Length))
-                    {
-                        process = Process.GetProcessById(xenia.Id);
-                        await Task.Delay(1000);
-                    }
-                    Log.Information($"Xenia Window Title: {xenia.MainWindowTitle}");
-
-                    Log.Information("Trying first method to find the game title from Xenia Window Title.");
-                    Regex versionRegex = new Regex(@"\[([A-Z0-9]+)\s+v\d+\.\d+\]");
-                    Regex gameNameRegex = new Regex(@"\]\s+(.+)\s+<");
-
-                    Match versionMatch = versionRegex.Match(xenia.MainWindowTitle);
-                    gameVersion = versionMatch.Success ? versionMatch.Groups[1].Value : "Not found";
-                    Match gameNameMatch = gameNameRegex.Match(xenia.MainWindowTitle);
-                    gameTitle = gameNameMatch.Success ? gameNameMatch.Groups[1].Value : "Not found";
-
-                    if (gameTitle == "" || gameTitle == "Not found")
-                    {
-                        Log.Information("First method failed.");
-                        Log.Information("Trying second method to find the game title from Xenia Window Title.");
-
-                        string pattern = @"\[(?<version>[^\]]+)\]\s(?<gameName>[^\<]+)";
-                        Match match = Regex.Match(xenia.MainWindowTitle, pattern);
-
-                        if (match.Success)
-                        {
-                            gameTitle = match.Groups["version"].Value;
-                            gameTitle = match.Groups["gameName"].Value.Trim();
-
-                            Log.Information("Game Title: " + gameTitle);
-                            Log.Information("Version: " + gameVersion);
-                            xenia.CloseMainWindow();
-                            xenia.Close();
-                            xenia.Dispose();
-
-                            SelectGame sd = new SelectGame(this, gameTitle, selectedFilePath);
-                            sd.ShowDialog();
-                        }
-                        else
-                        {
-                            Log.Information("No game title found.");
-                            xenia.CloseMainWindow();
-                            xenia.Close();
-                            xenia.Dispose();
-                            SelectGame sd = new SelectGame(this, "", selectedFilePath);
-                            sd.ShowDialog();
-                        }
-                    }
-                    else
-                    {
-                        Log.Information("Game title found.");
-                        Log.Information("Game Title: " + gameTitle);
-                        Log.Information("Version: " + gameVersion);
-                        xenia.CloseMainWindow();
-                        xenia.Close();
-                        xenia.Dispose();
-
-                        SelectGame sd = new SelectGame(this, gameTitle, selectedFilePath);
-                        sd.ShowDialog();
-                    }
+                    Log.Information(openFileDialog.FileName);
+                    await GetGameTitle(openFileDialog.FileName);
                 }
                 await LoadGames();
                 await SaveGames();

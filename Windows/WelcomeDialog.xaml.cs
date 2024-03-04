@@ -200,7 +200,7 @@ namespace Xenia_Manager.Windows
                 Log.Information("Done. Generating Xenia configuration by running it.");
                 await GenerateConfigFile(App.appConfig.EmulatorLocation + @"xenia_canary.exe", App.appConfig.EmulatorLocation + @"\xenia-canary.config.toml");
                 Log.Information("Done.");
-                MessageBox.Show("Xenia Canary installed");
+                MessageBox.Show("Xenia Canary installed.\nPlease close down Xenia if it's still open (Happens when it shows the warning).");
                 this.Close();
                 await Task.Delay(1);
             }
