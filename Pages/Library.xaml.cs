@@ -53,8 +53,8 @@ namespace Xenia_Manager.Pages
             }
             catch (Exception ex)
             {
-                Log.Error(ex.Message, "");
-                MessageBox.Show(ex.Message + "\nFull Error:\n" + ex);
+                Log.Error(ex.Message + "\nFull Error:\n" + ex);
+                MessageBox.Show(ex.Message);
             }
         }
 
@@ -113,10 +113,13 @@ namespace Xenia_Manager.Pages
                             button.Height = 198;
                             button.Margin = new Thickness(5);
 
-                            // Create the context menu
                             ContextMenu contextMenu = new ContextMenu();
 
-                            // Create menu items
+                            MenuItem WindowedMode = new MenuItem();
+                            WindowedMode.Header = "Play game in windowed mode";
+                            WindowedMode.Click += (sender, e) => StartGameWindowed_Click(game);
+                            contextMenu.Items.Add(WindowedMode);
+
                             MenuItem EditGame = new MenuItem();
                             EditGame.Header = "Edit game";
                             EditGame.Click += (sender, e) => EditGame_Click(game);
@@ -152,13 +155,39 @@ namespace Xenia_Manager.Pages
         }
 
         /// <summary>
+        /// Launches the game in windowed mode and waits for it to close
+        /// </summary>
+        /// <param name="game">Game we want to launch</param>
+        private async void StartGameWindowed_Click(Game game)
+        {
+            try
+            {
+                Process xenia = new Process();
+                xenia.StartInfo.FileName = App.appConfig.ExecutableFilePath;
+                xenia.StartInfo.Arguments = $@"""{game.GameLocation}""";
+                xenia.Start();
+                Log.Information("Emulator started.");
+                await xenia.WaitForExitAsync();
+                Log.Information("Emulator closed.");
+            }
+            catch (Exception ex)
+            {
+                Log.Error(ex.Message + "\nFull Error:\n" + ex);
+                MessageBox.Show(ex.Message);
+                return;
+            }
+        }
+
+        /// <summary>
         /// Used to edit the game details
         /// </summary>
         private async void EditGamePatch_Click(Game game)
         {
             try
             {
-                Log.Information("Editing game patch.");
+                Log.Information($"Editing {game.Title} patch file.");
+                EditGamePatches editGamePatches = new EditGamePatches(game.PatchLocation);
+                editGamePatches.ShowDialog();
                 await Task.Delay(1);
             }
             catch (Exception ex)

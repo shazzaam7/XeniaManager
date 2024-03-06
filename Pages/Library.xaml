@@ -89,9 +89,9 @@
                 <Grid>
                     <Button x:Name="AddGame" 
                             Style="{StaticResource Buttons}"
-                            HorizontalAlignment="Left"
+                            HorizontalAlignment="Center"
                             VerticalAlignment="Center"
-                            Margin="100,0,0,0"
+                            Margin="0,0,0,0"
                             Click="AddGame_Click">
                         <Button.Content>
                             <Border BorderBrush="Black"
