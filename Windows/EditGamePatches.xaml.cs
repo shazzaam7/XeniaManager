@@ -13,10 +13,24 @@ using Tomlyn.Syntax;
 
 namespace Xenia_Manager.Windows
 {
+    /// <summary>
+    /// Patch class used to read and edit patches
+    /// </summary>
     public class Patch
     {
+        /// <summary>
+        /// Name of the patch
+        /// </summary>
         public string Name { get; set; }
+
+        /// <summary>
+        /// Is the patch enabled
+        /// </summary>
         public bool IsEnabled { get; set; }
+
+        /// <summary>
+        /// What this patch does, can be null
+        /// </summary>
         public string? Description { get; set; }
     }
 
@@ -33,9 +47,19 @@ namespace Xenia_Manager.Windows
             ReadGamePatch();
         }
 
+        /// <summary>
+        /// Holds every patch as a Patch class
+        /// </summary>
         public ObservableCollection<Patch> Patches { get; set; }
+
+        /// <summary>
+        /// Holds the patchLocation used to read and write patches
+        /// </summary>
         private string patchLocation;
 
+        /// <summary>
+        /// Reads game patch into the Patches ObservableCollection
+        /// </summary>
         private void ReadGamePatch()
         {
             try
@@ -57,10 +81,6 @@ namespace Xenia_Manager.Windows
                         {
                             newPatch.Description = patch["desc"].ToString();
                         }
-                        else
-                        {
-                            newPatch.Description = "";
-                        }
                         Patches.Add(newPatch);
                     }
                 }
@@ -72,6 +92,9 @@ namespace Xenia_Manager.Windows
             }
         }
 
+        /// <summary>
+        /// Saves the game patches into the .toml file
+        /// </summary>
         private async Task SaveGamePatch()
         {
             try
@@ -110,6 +133,9 @@ namespace Xenia_Manager.Windows
             }
         }
 
+        /// <summary>
+        /// Saves all of the patches and closes the window
+        /// </summary>
         private async void Exit_Click(object sender, RoutedEventArgs e)
         {
             await SaveGamePatch();

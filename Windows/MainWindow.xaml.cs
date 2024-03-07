@@ -21,25 +21,16 @@ namespace Xenia_Manager
             InitializeComponent();
         }
 
-        private void Exit_Click(object sender, RoutedEventArgs e)
-        {
-            Environment.Exit(0);
-        }
-
-        private void Window_MouseLeftButtonDown(object sender, System.Windows.Input.MouseButtonEventArgs e)
-        {
-            if (e.ButtonState == MouseButtonState.Pressed)
-            {
-                DragMove();
-            }
-        }
-
+        /// <summary>
+        /// When the Main window loads
+        /// </summary>
         private void Window_Loaded(object sender, RoutedEventArgs e)
         {
             try
             {
                 if (!File.Exists(App.InstallationDirectory + @"config.json"))
                 {
+                    Log.Information("Confuration file not found, opening WelcomeDialog.");
                     WelcomeDialog welcomeDialog = new WelcomeDialog();
                     welcomeDialog.Topmost = true;
                     welcomeDialog.ShowDialog();
@@ -50,6 +41,25 @@ namespace Xenia_Manager
                 Log.Error(ex.Message + "\nFull Error:\n" + ex);
                 MessageBox.Show(ex.Message);
             }
+        }
+
+        /// <summary>
+        /// Used for dragging the window around
+        /// </summary>
+        private void Window_MouseLeftButtonDown(object sender, System.Windows.Input.MouseButtonEventArgs e)
+        {
+            if (e.ButtonState == MouseButtonState.Pressed)
+            {
+                DragMove();
+            }
+        }
+
+        /// <summary>
+        /// Exits the application completely
+        /// </summary>
+        private void Exit_Click(object sender, RoutedEventArgs e)
+        {
+            Environment.Exit(0);
         }
     }
 }

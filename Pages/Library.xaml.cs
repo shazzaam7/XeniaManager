@@ -2,6 +2,7 @@
 using System.Collections.ObjectModel;
 using System.Windows;
 using System.Windows.Controls;
+using System.IO;
 
 // Imported
 using Serilog;
@@ -14,8 +15,7 @@ using System.Windows.Media.Imaging;
 using System.Windows.Media;
 using Xenia_Manager.Windows;
 using Newtonsoft.Json;
-using System.IO;
-
+using IWshRuntimeLibrary;
 
 namespace Xenia_Manager.Pages
 {
@@ -43,10 +43,10 @@ namespace Xenia_Manager.Pages
         {
             try
             {
-                if (File.Exists(App.InstallationDirectory + @"installedGames.json"))
+                if (System.IO.File.Exists(App.InstallationDirectory + @"installedGames.json"))
                 {
                     wrapPanel.Children.Clear();
-                    string JSON = File.ReadAllText(App.InstallationDirectory + @"installedGames.json");
+                    string JSON = System.IO.File.ReadAllText(App.InstallationDirectory + @"installedGames.json");
                     Games = JsonConvert.DeserializeObject<ObservableCollection<Game>>((JSON));
                     LoadGamesIntoUI();
                 }
@@ -120,9 +120,16 @@ namespace Xenia_Manager.Pages
                             WindowedMode.Click += (sender, e) => StartGameWindowed_Click(game);
                             contextMenu.Items.Add(WindowedMode);
 
+                            /*
                             MenuItem EditGame = new MenuItem();
                             EditGame.Header = "Edit game";
                             EditGame.Click += (sender, e) => EditGame_Click(game);
+                            */
+
+                            MenuItem CreateShortcut = new MenuItem();
+                            CreateShortcut.Header = "Create shortcut on desktop";
+                            CreateShortcut.Click += (sender, e) => CreateShortcut_Click(game);
+                            contextMenu.Items.Add(CreateShortcut);
 
                             MenuItem RemoveGame = new MenuItem();
                             RemoveGame.Header = "Remove game";
@@ -136,15 +143,38 @@ namespace Xenia_Manager.Pages
                                 contextMenu.Items.Add(EditGamePatch);
                             }
 
-                            contextMenu.Items.Add(EditGame);
+                            //contextMenu.Items.Add(EditGame);
                             contextMenu.Items.Add(RemoveGame);
 
-                            // Assign context menu to button
                             button.ContextMenu = contextMenu;
                         };
                     }
                 }
                 await Task.Delay(1);
+            }
+            catch (Exception ex)
+            {
+                Log.Error(ex.Message + "\nFull Error:\n" + ex);
+                MessageBox.Show(ex.Message);
+                return;
+            }
+        }
+
+        /// <summary>
+        /// Launches the game and waits for it to close
+        /// </summary>
+        /// <param name="game">Game we want to launch</param>
+        private async void StartGame_Click(Game game)
+        {
+            try
+            {
+                Process xenia = new Process();
+                xenia.StartInfo.FileName = App.appConfig.ExecutableFilePath;
+                xenia.StartInfo.Arguments = $@"""{game.GameLocation}"" --fullscreen";
+                xenia.Start();
+                Log.Information("Emulator started.");
+                await xenia.WaitForExitAsync();
+                Log.Information("Emulator closed.");
             }
             catch (Exception ex)
             {
@@ -169,6 +199,33 @@ namespace Xenia_Manager.Pages
                 Log.Information("Emulator started.");
                 await xenia.WaitForExitAsync();
                 Log.Information("Emulator closed.");
+            }
+            catch (Exception ex)
+            {
+                Log.Error(ex.Message + "\nFull Error:\n" + ex);
+                MessageBox.Show(ex.Message);
+                return;
+            }
+        }
+
+        /// <summary>
+        /// Used to create shortcut of the game on desktop
+        /// </summary>
+        private async void CreateShortcut_Click(Game game)
+        {
+            try
+            {
+                Log.Information($"Creating {game.Title} shortcut on desktop.");
+                string shortcutLocation = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.Desktop), $"{game.Title}.lnk");
+                WshShell shell = new WshShell();
+                IWshShortcut shortcut = (IWshShortcut)shell.CreateShortcut(shortcutLocation);
+                shortcut.TargetPath = App.appConfig.ExecutableFilePath;
+                shortcut.WorkingDirectory = App.appConfig.EmulatorLocation;
+                shortcut.Arguments = $@"""{game.GameLocation}"" --fullscreen";
+                shortcut.IconLocation = game.CoverImage;
+                shortcut.Save();
+                Log.Information("Done.");
+                await Task.Delay(1);
             }
             catch (Exception ex)
             {
@@ -227,34 +284,22 @@ namespace Xenia_Manager.Pages
                 MessageBoxResult result = MessageBox.Show($"Do you want to remove {game.Title}?", "Confirmation", MessageBoxButton.YesNo, MessageBoxImage.Question);
                 if (result == MessageBoxResult.Yes)
                 {
-                    Games.Remove(game);
-                    await LoadGames();
-                    await SaveGames();
-                }
-            }
-            catch (Exception ex)
-            {
-                Log.Error(ex.Message + "\nFull Error:\n" + ex);
-                MessageBox.Show(ex.Message);
-                return;
-            }
-        }
+                    Log.Information($"Removing {game.Title}.");
+                    // Remove game patch
+                    if (System.IO.File.Exists(game.PatchLocation))
+                    {
+                        System.IO.File.Delete(game.PatchLocation);
+                        Log.Information($"Deleted {game.Title} patch.");
+                    }
 
-        /// <summary>
-        /// Launches the game and waits for it to close
-        /// </summary>
-        /// <param name="game">Game we want to launch</param>
-        private async void StartGame_Click(Game game)
-        {
-            try
-            {
-                Process xenia = new Process();
-                xenia.StartInfo.FileName = App.appConfig.ExecutableFilePath;
-                xenia.StartInfo.Arguments = $@"""{game.GameLocation}"" --fullscreen";
-                xenia.Start();
-                Log.Information("Emulator started.");
-                await xenia.WaitForExitAsync();
-                Log.Information("Emulator closed.");
+                    // Removing the game
+                    Games.Remove(game);
+                    Log.Information($"Removing the {game.Title} from the Library.");
+                    await LoadGames();
+                    Log.Information("Reloading the library.");
+                    await SaveGames();
+                    Log.Information($"Saving the new library without {game.Title}.");
+                }
             }
             catch (Exception ex)
             {
@@ -272,7 +317,7 @@ namespace Xenia_Manager.Pages
             try
             {
                 string JSON = JsonConvert.SerializeObject(Games, Formatting.Indented);
-                File.WriteAllText(App.InstallationDirectory + @"installedGames.json", JSON);
+                System.IO.File.WriteAllText(App.InstallationDirectory + @"installedGames.json", JSON);
                 await Task.Delay(1);
             }
             catch (Exception ex)
