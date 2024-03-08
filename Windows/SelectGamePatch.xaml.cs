@@ -35,8 +35,16 @@ namespace Xenia_Manager.Windows
             InitializeAsync();
         }
 
+        public SelectGamePatch(Game game)
+        {
+            InitializeComponent();
+            currentGame = game;
+            InitializeAsync();
+        }
+
         LoadingWindow loadingWindow = new LoadingWindow();
         private Xenia_Manager.Windows.SelectGame _selectGame;
+        private Game currentGame;
         List<GamePatches> patches = new List<GamePatches>();
         private List<string> filteredPatches = new List<string>();
 
@@ -73,7 +81,21 @@ namespace Xenia_Manager.Windows
                         {
                             Patches.Items.Add(patch.name);
                         }
-                        SearchBox.Text = _selectGame.newGame.Title;
+                        if (_selectGame != null)
+                        {
+                            SearchBox.Text = _selectGame.newGame.id;
+                        }
+                        else
+                        {
+                            if (currentGame.id != null)
+                            {
+                                SearchBox.Text = currentGame.id;
+                            }
+                            else
+                            {
+                                SearchBox.Text = currentGame.Title;
+                            }
+                        }
                     }
                     else
                     {
@@ -138,7 +160,14 @@ namespace Xenia_Manager.Windows
                             Log.Information($"Selected Patch: {selectedPatch}");
                             Log.Information(selectedPatch.download_url);
                             await PatchDownloader(selectedPatch.download_url, App.appConfig.EmulatorLocation + @"patches\" + selectedPatch.name);
-                            _selectGame.newGame.PatchLocation = App.appConfig.EmulatorLocation + @"patches\" + selectedPatch.name;
+                            if (_selectGame != null)
+                            {
+                                _selectGame.newGame.PatchLocation = App.appConfig.EmulatorLocation + @"patches\" + selectedPatch.name;
+                            }
+                            else
+                            {
+                                currentGame.PatchLocation = App.appConfig.EmulatorLocation + @"patches\" + selectedPatch.name;
+                            }
                             this.Close();
                         }
                     }

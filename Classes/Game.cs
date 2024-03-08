@@ -10,6 +10,11 @@ namespace Xenia_Manager.Classes
         public string? Title { get; set; }
 
         /// <summary>
+        /// ID of the game
+        /// </summary>
+        public string? id { get; set; }
+
+        /// <summary>
         /// Location of the Cover Image
         /// </summary>
         public string? CoverImage { get; set; }

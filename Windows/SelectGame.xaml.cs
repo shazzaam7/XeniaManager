@@ -35,12 +35,13 @@ namespace Xenia_Manager.Windows
             InitializeAsync();
         }
 
-        public SelectGame(Xenia_Manager.Pages.Library library, string selectedGame, string selectedGameFilePath)
+        public SelectGame(Xenia_Manager.Pages.Library library, string selectedGame,string id, string selectedGameFilePath)
         {
             InitializeComponent();
             if (selectedGame != null)
             {
                 this.gameTitle = selectedGame;
+                this.gameid = id;
             }
             this.GameFilePath = selectedGameFilePath;
             _library = library;
@@ -51,6 +52,7 @@ namespace Xenia_Manager.Windows
         List<GameInfo> games = new List<GameInfo>();
         private List<string> filteredGameTitles = new List<string>();
         private string gameTitle = "";
+        private string gameid = "";
         private string GameFilePath = "";
         private Xenia_Manager.Pages.Library _library;
         public Game newGame = new Game();
@@ -70,6 +72,9 @@ namespace Xenia_Manager.Windows
             }
         }
 
+        /// <summary>
+        /// Used to read the games from the "database" 
+        /// </summary>
         private async Task ReadGames()
         {
             try
@@ -110,6 +115,14 @@ namespace Xenia_Manager.Windows
             }
         }
 
+        /// <summary>
+        /// Grabs the game box art from wikipedia and converts it to .ico
+        /// </summary>
+        /// <param name="imageUrl">Image URL</param>
+        /// <param name="outputPath">Where the file will be stored after conversion</param>
+        /// <param name="width">Width of the box art</param>
+        /// <param name="height">Height of the box art</param>
+        /// <returns></returns>
         private async Task GetGameIcon(string imageUrl, string outputPath, int width = 132, int height = 198)
         {
             try
@@ -118,7 +131,7 @@ namespace Xenia_Manager.Windows
                 {
                     using (var webClient = new WebClient())
                     {
-                        webClient.Headers.Add("User-Agent", "CoolBot/0.0 (https://example.org/coolbot/; coolbot@example.org) generic-library/0.0"); // Add custom User-Agent header
+                        webClient.Headers.Add("User-Agent", "CoolBot/0.0 (https://example.org/coolbot/; coolbot@example.org) generic-library/0.0");
 
                         byte[] imageData = webClient.DownloadData(imageUrl);
 
@@ -169,17 +182,19 @@ namespace Xenia_Manager.Windows
             }
         }
 
+        /// <summary>
+        /// This is for double clicking of the items
+        /// </summary>
         private async void Games_MouseDoubleClick(object sender, System.Windows.Input.MouseButtonEventArgs e)
         {
             try
             {
                 if (e.ChangedButton == MouseButton.Left)
                 {
-                    // Get the clicked item
-                    var listBox = sender as ListBox;
+                    ListBox listBox = sender as ListBox;
                     if (listBox != null && listBox.SelectedItem != null)
                     {
-                        var selectedItem = listBox.SelectedItem.ToString();
+                        string selectedItem = listBox.SelectedItem.ToString();
                         GameInfo selectedGame = games.FirstOrDefault(game => game.Title == selectedItem);
                         if (selectedGame != null)
                         {
@@ -187,6 +202,7 @@ namespace Xenia_Manager.Windows
                             Log.Information(selectedGame.ImageUrl);
                             await GetGameIcon(selectedGame.ImageUrl, @$"{App.InstallationDirectory}Icons\{selectedGame.Title.Replace(":", " -")}.ico");
                             newGame.Title = selectedGame.Title.Replace(":", " -");
+                            newGame.id = gameid;
                             newGame.CoverImage = App.InstallationDirectory + @"Icons\" + selectedGame.Title.Replace(":", " -") + ".ico";
                             newGame.GameLocation = GameFilePath;
                             SelectGamePatch gamePatch = new SelectGamePatch(this);
@@ -205,6 +221,9 @@ namespace Xenia_Manager.Windows
             }
         }
 
+        /// <summary>
+        /// This filters the Listbox items to the searchbox
+        /// </summary>
         private async void SearchBox_TextChanged(object sender, TextChangedEventArgs e)
         {
             string searchQuery = SearchBox.Text.ToLower();
@@ -213,6 +232,9 @@ namespace Xenia_Manager.Windows
             await Task.Delay(1);
         }
 
+        /// <summary>
+        /// This updates the Listbox with the filtered items
+        /// </summary>
         private void UpdateListBox()
         {
             Games.ItemsSource = null;
@@ -220,6 +242,9 @@ namespace Xenia_Manager.Windows
             Games.ItemsSource = filteredGameTitles;
         }
 
+        /// <summary>
+        /// Exits the window
+        /// </summary>
         private void Exit_Click(object sender, RoutedEventArgs e)
         {
             this.Close();

@@ -142,6 +142,13 @@ namespace Xenia_Manager.Pages
                                 EditGamePatch.Click += (sender, e) => EditGamePatch_Click(game);
                                 contextMenu.Items.Add(EditGamePatch);
                             }
+                            else
+                            {
+                                MenuItem AddGamePatch = new MenuItem();
+                                AddGamePatch.Header = "Add game patch";
+                                AddGamePatch.Click += (sender, e) => AddGamePatch_Click(game);
+                                contextMenu.Items.Add(AddGamePatch);
+                            }
 
                             //contextMenu.Items.Add(EditGame);
                             contextMenu.Items.Add(RemoveGame);
@@ -225,6 +232,47 @@ namespace Xenia_Manager.Pages
                 shortcut.IconLocation = game.CoverImage;
                 shortcut.Save();
                 Log.Information("Done.");
+                await Task.Delay(1);
+            }
+            catch (Exception ex)
+            {
+                Log.Error(ex.Message + "\nFull Error:\n" + ex);
+                MessageBox.Show(ex.Message);
+                return;
+            }
+        }
+
+        /// <summary>
+        /// Used to edit the game details
+        /// </summary>
+        private async void AddGamePatch_Click(Game game)
+        {
+            try
+            {
+                Log.Information($"Adding {game.Title} patch file.");
+                MessageBoxResult result = MessageBox.Show("Do you have the patch locally downloaded?", "Confirmation", MessageBoxButton.YesNo);
+                if (result == MessageBoxResult.Yes)
+                {
+                    OpenFileDialog openFileDialog = new OpenFileDialog();
+                    openFileDialog.Title = "Select a game patch";
+                    openFileDialog.Filter = "Supported Files|*.toml";
+                    if (openFileDialog.ShowDialog() == true)
+                    {
+                        Log.Information($"Selected file: {openFileDialog.FileName}");
+                        System.IO.File.Copy(openFileDialog.FileName, App.appConfig.EmulatorLocation + @$"patches\{Path.GetFileName(openFileDialog.FileName)}", true);
+                        Log.Information("Copying the file to the patches folder.");
+                        System.IO.File.Delete(openFileDialog.FileName);
+                        Log.Information("Deleting the original file.");
+                        game.PatchLocation = App.appConfig.EmulatorLocation + @$"patches\{Path.GetFileName(openFileDialog.FileName)}";
+                    }
+                }
+                else
+                {
+                    SelectGamePatch selectGamePatch = new SelectGamePatch(game);
+                    selectGamePatch.ShowDialog();
+                }
+                await LoadGames();
+                await SaveGames();
                 await Task.Delay(1);
             }
             catch (Exception ex)
@@ -343,18 +391,19 @@ namespace Xenia_Manager.Pages
                 xenia.Start();
                 xenia.WaitForInputIdle();
 
-                string test = "Xenia-canary (canary_experimental@e0f0dc7f3 on Dec 23 2023)";
                 string gameTitle = "";
-                string gameVersion = "";
+                string id = "";
 
                 Process process = Process.GetProcessById(xenia.Id);
-                while (process.MainWindowTitle.Length <= (test.Length))
+                /*
+                while (process.MainWindowTitle.Length <= (90))
                 {
                     process = Process.GetProcessById(xenia.Id);
                     await Task.Delay(1000);
                 }
                 Log.Information($"Xenia Window Title: {xenia.MainWindowTitle}");
 
+                Log.Information($"{xenia.MainWindowTitle.Length.ToString()}");
                 Log.Information("Trying first method to find the game title from Xenia Window Title.");
                 Regex versionRegex = new Regex(@"\[([A-Z0-9]+)\s+v\d+\.\d+\]");
                 Regex gameNameRegex = new Regex(@"\]\s+(.+)\s+<");
@@ -408,6 +457,32 @@ namespace Xenia_Manager.Pages
                     SelectGame sd = new SelectGame(this, gameTitle, selectedFilePath);
                     sd.ShowDialog();
                 }
+                */
+                Log.Information("Trying to find the game title from Xenia Window Title.");
+                while (gameTitle == "" || gameTitle == "Not found")
+                {
+                    Regex gameNameRegex = new Regex(@"\]\s+(.+)\s+<");
+                    Regex versionRegex = new Regex(@"\[([A-Z0-9]+)\s+v\d+\.\d+\]");
+
+                    Match gameNameMatch = gameNameRegex.Match(process.MainWindowTitle);
+                    gameTitle = gameNameMatch.Success ? gameNameMatch.Groups[1].Value : "Not found";
+                    Match versionMatch = versionRegex.Match(process.MainWindowTitle);
+                    id = versionMatch.Success ? versionMatch.Groups[1].Value : "Not found";
+
+                    process = Process.GetProcessById(xenia.Id);
+                    await Task.Delay(100);
+                }
+
+                xenia.CloseMainWindow();
+                xenia.Close();
+                xenia.Dispose();
+
+                Log.Information("Game title found.");
+                Log.Information("Game Title: " + gameTitle);
+                Log.Information("Version: " + id);
+
+                SelectGame sd = new SelectGame(this, gameTitle, id, selectedFilePath);
+                sd.ShowDialog();
             }
             catch (Exception ex)
             {
