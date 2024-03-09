@@ -174,7 +174,8 @@
                                 <!-- Options button -->
                                 <Button
                                     x:Name="Options"
-                                    Style="{StaticResource Navigation_Buttons}">
+                                    Style="{StaticResource Navigation_Buttons}"
+                                    Click="Options_Click">
                                     <Button.Content>
                                         <Grid>
                                             <Grid.RowDefinitions>

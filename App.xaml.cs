@@ -10,6 +10,8 @@ using System.Diagnostics;
 using System.Text.RegularExpressions;
 using Xenia_Manager.Classes;
 using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
+using System.Net.Http;
 
 namespace Xenia_Manager
 {
@@ -40,6 +42,16 @@ namespace Xenia_Manager
         public static AppConfiguration? appConfig;
 
         /// <summary>
+        /// Stores the downloadURL of the Xenia Build
+        /// </summary>
+        private string downloadUrl = "";
+
+        /// <summary>
+        /// Stores Xenia Build ID
+        /// </summary>
+        private int id = 0;
+
+        /// <summary>
         /// Used to load config.json
         /// </summary>
         private async Task LoadConfigurationFile()
@@ -64,6 +76,83 @@ namespace Xenia_Manager
                 Log.Error(ex.Message, "");
                 MessageBox.Show(ex.Message + "\nFull Error:\n" + ex);
                 return;
+            }
+        }
+
+        /// <summary>
+        /// Function that grabs the download link of the selected build
+        /// </summary>
+        /// <param name="url">URL of the builds releases page API</param>
+        /// <returns></returns>
+        private async Task CheckForUpdates()
+        {
+            try
+            {
+                Log.Information("Checking for updates.");
+                using (HttpClient client = new HttpClient())
+                {
+                    client.DefaultRequestHeaders.Add("User-Agent", "C# HttpClient");
+                    client.DefaultRequestHeaders.Add("Accept", "application/vnd.github.v3+json");
+
+                    HttpResponseMessage response = await client.GetAsync("https://api.github.com/repos/xenia-canary/xenia-canary/releases");
+
+                    if (response.IsSuccessStatusCode)
+                    {
+                        string json = await response.Content.ReadAsStringAsync();
+                        JArray releases = JArray.Parse(json);
+
+                        if (releases.Count > 0)
+                        {
+                            JObject latestRelease = (JObject)releases[0];
+                            JArray assets = (JArray)latestRelease["assets"];
+                            id = (int)latestRelease["id"];
+                            string releaseDate = (string)latestRelease["published_at"];
+                            if (id != appConfig.VersionID)
+                            {
+                                Log.Information("Found newer version of Xenia");
+                                MessageBoxResult result = MessageBox.Show("Found a new version of Xenia. Do you want to update Xenia?", "Confirmation", MessageBoxButton.YesNo);
+                                if (result == MessageBoxResult.Yes)
+                                {
+                                    Log.Information("ID of the build: " + id.ToString());
+                                    if (assets.Count > 0)
+                                    {
+                                        JObject firstAsset = (JObject)assets[0];
+                                        downloadUrl = firstAsset["browser_download_url"].ToString();
+                                        Log.Information("Download link of the build: " + downloadUrl);
+                                        DownloadManager downloadManager = new DownloadManager(downloadUrl, AppDomain.CurrentDomain.BaseDirectory + @"\xenia.zip");
+                                        Log.Information("Downloading the latest Xenia Canary build.");
+                                        await downloadManager.DownloadAndExtractAsync();
+                                        Log.Information("Downloading and extraction of the latest Xenia Canary build done.");
+                                        Log.Information("Updating configuration file.");
+                                        appConfig.VersionID = id;
+                                        appConfig.ReleaseDate = DateTime.Parse(releaseDate);
+                                        string updatedConfigFile = JsonConvert.SerializeObject(App.appConfig);
+                                        File.WriteAllText(App.InstallationDirectory + @"config.json", updatedConfigFile);
+                                        Log.Information("Xenia has been updated to the latest build.");
+                                        MessageBox.Show("Xenia has been updated to the latest build.");
+                                    }
+                                }
+                            }
+                            else
+                            {
+                                Log.Information("Latest version is already installed.");
+                            }
+                        }
+                        else
+                        {
+                            Log.Error("No releases found.");
+                        }
+                    }
+                    else
+                    {
+                        Log.Error("Failed to retrieve releases. Status code: " + response.StatusCode);
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                Log.Error(ex.Message + "\nFull Error:\n" + ex);
+                MessageBox.Show(ex.Message);
             }
         }
 
@@ -100,6 +189,10 @@ namespace Xenia_Manager
             Log.Information("Loading the config.json");
             await LoadConfigurationFile();
 
+            if (appConfig != null)
+            {
+                await CheckForUpdates();
+            }
             await Task.Delay(1);
             Log.Information("App Loaded");
         }

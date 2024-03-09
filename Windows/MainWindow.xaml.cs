@@ -61,5 +61,10 @@ namespace Xenia_Manager
         {
             Environment.Exit(0);
         }
+
+        private void Options_Click(object sender, RoutedEventArgs e)
+        {
+
+        }
     }
 }

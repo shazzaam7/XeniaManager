@@ -33,6 +33,12 @@ namespace Xenia_Manager.Classes
             _downloadPath = downloadPath;
         }
 
+        public DownloadManager(string downloadUrl, string downloadPath)
+        {
+            _downloadUrl = downloadUrl;
+            _downloadPath = downloadPath;
+        }
+
         /// <summary>
         /// Used for downloading Xenia builds and extracting them
         /// </summary>
@@ -70,7 +76,7 @@ namespace Xenia_Manager.Classes
                 }
                 Log.Information("Download completed. Extracting.");
 
-                ZipFile.ExtractToDirectory(_downloadPath, Path.GetDirectoryName(_downloadPath) + @"\Xenia\");
+                ZipFile.ExtractToDirectory(_downloadPath, Path.GetDirectoryName(_downloadPath) + @"\Xenia\", true);
                 Log.Information("Extraction done. Deleting the zip file.");
 
                 File.Delete(_downloadPath);
@@ -84,13 +90,16 @@ namespace Xenia_Manager.Classes
         /// <param name="progress"></param>
         private void UpdateProgressBar(int progress)
         {
-            if (_progressBar.Dispatcher.CheckAccess())
+            if (_progressBar != null)
             {
-                _progressBar.Value = progress;
-            }
-            else
-            {
-                _progressBar.Dispatcher.Invoke(() => _progressBar.Value = progress);
+                if (_progressBar.Dispatcher.CheckAccess())
+                {
+                    _progressBar.Value = progress;
+                }
+                else
+                {
+                    _progressBar.Dispatcher.Invoke(() => _progressBar.Value = progress);
+                }
             }
         }
     }
