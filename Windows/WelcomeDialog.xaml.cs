@@ -174,6 +174,7 @@ namespace Xenia_Manager.Windows
                     VersionID = id,
                     Branch = "Canary",
                     ReleaseDate = DateTime.Parse(releaseDate),
+                    LastUpdateCheckDate = DateTime.Now,
                     EmulatorLocation = AppDomain.CurrentDomain.BaseDirectory + @"Xenia\",
                     ConfigurationFilePath = AppDomain.CurrentDomain.BaseDirectory + @"Xenia\xenia-canary.config.toml",
                     ExecutableFilePath = AppDomain.CurrentDomain.BaseDirectory + @"Xenia\xenia_canary.exe"
@@ -193,10 +194,10 @@ namespace Xenia_Manager.Windows
                 {
                     File.Create(App.appConfig.EmulatorLocation + @"portable.txt");
                 }
-                string json = JsonConvert.SerializeObject(App.appConfig);
 
-                // Write the JSON to a file
-                File.WriteAllText(App.InstallationDirectory + @"config.json", json);
+                // Saving changes to the config.json file
+                App.appConfig.SaveChanges(App.InstallationDirectory + @"config.json");
+
                 Log.Information("Done. Generating Xenia configuration by running it.");
                 await GenerateConfigFile(App.appConfig.EmulatorLocation + @"xenia_canary.exe", App.appConfig.EmulatorLocation + @"\xenia-canary.config.toml");
                 Log.Information("Done.");

@@ -42,16 +42,6 @@ namespace Xenia_Manager
         public static AppConfiguration? appConfig;
 
         /// <summary>
-        /// Stores the downloadURL of the Xenia Build
-        /// </summary>
-        private string downloadUrl = "";
-
-        /// <summary>
-        /// Stores Xenia Build ID
-        /// </summary>
-        private int id = 0;
-
-        /// <summary>
         /// Used to load config.json
         /// </summary>
         private async Task LoadConfigurationFile()
@@ -105,7 +95,7 @@ namespace Xenia_Manager
                         {
                             JObject latestRelease = (JObject)releases[0];
                             JArray assets = (JArray)latestRelease["assets"];
-                            id = (int)latestRelease["id"];
+                            int id = (int)latestRelease["id"];
                             string releaseDate = (string)latestRelease["published_at"];
                             if (id != appConfig.VersionID)
                             {
@@ -117,17 +107,17 @@ namespace Xenia_Manager
                                     if (assets.Count > 0)
                                     {
                                         JObject firstAsset = (JObject)assets[0];
-                                        downloadUrl = firstAsset["browser_download_url"].ToString();
+                                        string downloadUrl = firstAsset["browser_download_url"].ToString();
                                         Log.Information("Download link of the build: " + downloadUrl);
-                                        DownloadManager downloadManager = new DownloadManager(downloadUrl, AppDomain.CurrentDomain.BaseDirectory + @"\xenia.zip");
+                                        DownloadManager downloadManager = new DownloadManager(null, downloadUrl, AppDomain.CurrentDomain.BaseDirectory + @"\xenia.zip");
                                         Log.Information("Downloading the latest Xenia Canary build.");
                                         await downloadManager.DownloadAndExtractAsync();
                                         Log.Information("Downloading and extraction of the latest Xenia Canary build done.");
                                         Log.Information("Updating configuration file.");
                                         appConfig.VersionID = id;
                                         appConfig.ReleaseDate = DateTime.Parse(releaseDate);
-                                        string updatedConfigFile = JsonConvert.SerializeObject(App.appConfig);
-                                        File.WriteAllText(App.InstallationDirectory + @"config.json", updatedConfigFile);
+                                        appConfig.LastUpdateCheckDate = DateTime.Now;
+                                        appConfig.SaveChanges(App.InstallationDirectory + @"config.json");
                                         Log.Information("Xenia has been updated to the latest build.");
                                         MessageBox.Show("Xenia has been updated to the latest build.");
                                     }
@@ -135,16 +125,22 @@ namespace Xenia_Manager
                             }
                             else
                             {
+                                appConfig.LastUpdateCheckDate = DateTime.Now;
+                                appConfig.SaveChanges(App.InstallationDirectory + @"config.json");
                                 Log.Information("Latest version is already installed.");
                             }
                         }
                         else
                         {
+                            appConfig.LastUpdateCheckDate = DateTime.Now;
+                            appConfig.SaveChanges(App.InstallationDirectory + @"config.json");
                             Log.Error("No releases found.");
                         }
                     }
                     else
                     {
+                        appConfig.LastUpdateCheckDate = DateTime.Now;
+                        appConfig.SaveChanges(App.InstallationDirectory + @"config.json");
                         Log.Error("Failed to retrieve releases. Status code: " + response.StatusCode);
                     }
                 }
@@ -189,7 +185,7 @@ namespace Xenia_Manager
             Log.Information("Loading the config.json");
             await LoadConfigurationFile();
 
-            if (appConfig != null)
+            if (appConfig != null && (appConfig.LastUpdateCheckDate == null || (DateTime.Now - appConfig.LastUpdateCheckDate.Value).TotalDays >= 1))
             {
                 await CheckForUpdates();
             }

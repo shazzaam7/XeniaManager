@@ -1,7 +1,9 @@
 ﻿using System;
+using System.IO;
 
 // Imported
 using Newtonsoft.Json;
+using Serilog;
 
 namespace Xenia_Manager.Classes
 {
@@ -27,6 +29,11 @@ namespace Xenia_Manager.Classes
         public DateTime? ReleaseDate { get; set; }
 
         /// <summary>
+        /// <para>Date when the last check for updates was</para>
+        /// </summary>
+        public DateTime? LastUpdateCheckDate { get; set; }
+
+        /// <summary>
         /// <para>Where the emulator is installed</para>
         /// </summary>
         [JsonProperty("EmulatorLocation")]
@@ -43,5 +50,15 @@ namespace Xenia_Manager.Classes
         /// </summary>
         [JsonProperty("ExecutableFilePath")]
         public string? ExecutableFilePath { get; set; }
+
+        /// <summary>
+        /// Saves the changes to a file
+        /// </summary>
+        /// <param name="filePath">Where the configuration file is located</param>
+        public void SaveChanges(string filePath)
+        {
+            string json = JsonConvert.SerializeObject(this);
+            File.WriteAllText(filePath, json);
+        }
     }
 }

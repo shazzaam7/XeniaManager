@@ -120,20 +120,20 @@ namespace Xenia_Manager.Windows
         /// </summary>
         /// <param name="imageUrl">Image URL</param>
         /// <param name="outputPath">Where the file will be stored after conversion</param>
-        /// <param name="width">Width of the box art</param>
-        /// <param name="height">Height of the box art</param>
+        /// <param name="width">Width of the box art. Default is 132</param>
+        /// <param name="height">Height of the box art. Default is 198</param>
         /// <returns></returns>
-        private async Task GetGameIcon(string imageUrl, string outputPath, int width = 132, int height = 198)
+        private async Task GetGameIcon(string imageUrl, string outputPath, int width = 140, int height = 187)
         {
             try
             {
                 if (!File.Exists(outputPath))
                 {
-                    using (var webClient = new WebClient())
+                    using (var httpClient = new HttpClient())
                     {
-                        webClient.Headers.Add("User-Agent", "CoolBot/0.0 (https://example.org/coolbot/; coolbot@example.org) generic-library/0.0");
+                        httpClient.DefaultRequestHeaders.UserAgent.ParseAdd("CoolBot/0.0 (https://example.org/coolbot/; coolbot@example.org) generic-library/0.0");
 
-                        byte[] imageData = webClient.DownloadData(imageUrl);
+                        byte[] imageData = await httpClient.GetByteArrayAsync(imageUrl);
 
                         using (MemoryStream memoryStream = new MemoryStream(imageData))
                         {

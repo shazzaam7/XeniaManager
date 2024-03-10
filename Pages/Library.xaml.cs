@@ -109,8 +109,8 @@ namespace Xenia_Manager.Pages
                         wrapPanel.Children.Add(button);
                         button.Loaded += (sender, e) =>
                         {
-                            button.Width = 132;
-                            button.Height = 198;
+                            button.Width = 140;
+                            button.Height = 187;
                             button.Margin = new Thickness(5);
 
                             ContextMenu contextMenu = new ContextMenu();
