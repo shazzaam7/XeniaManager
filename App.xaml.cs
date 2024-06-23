@@ -12,6 +12,7 @@ using Xenia_Manager.Classes;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using System.Net.Http;
+using System.Globalization;
 
 namespace Xenia_Manager
 {
@@ -115,12 +116,17 @@ namespace Xenia_Manager
                                         Log.Information("Downloading and extraction of the latest Xenia Canary build done.");
                                         Log.Information("Updating configuration file.");
                                         appConfig.VersionID = id;
-                                        appConfig.ReleaseDate = DateTime.Parse(releaseDate);
+                                        appConfig.ReleaseDate = DateTime.ParseExact(releaseDate, "MM/dd/yyyy HH:mm:ss", CultureInfo.InvariantCulture);
                                         appConfig.LastUpdateCheckDate = DateTime.Now;
                                         appConfig.SaveChanges(App.InstallationDirectory + @"config.json");
                                         Log.Information("Xenia has been updated to the latest build.");
                                         MessageBox.Show("Xenia has been updated to the latest build.");
                                     }
+                                }
+                                else
+                                {
+                                    appConfig.LastUpdateCheckDate = DateTime.Now;
+                                    appConfig.SaveChanges(App.InstallationDirectory + @"config.json");
                                 }
                             }
                             else
